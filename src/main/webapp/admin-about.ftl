@@ -71,11 +71,11 @@
                 <div class="contributor-body">
                     <ul>
                         <li><a target="_blank" href="http://www.ansen.org">An Shen</a></li>
-                        <li><a target="_blank" href="http://www.bestck.net">Chevo</a></li>
                         <li><a target="_blank" href="https://github.com/paul-luo">破生</a></li>
                         <li><a target="_blank" href="http://xxk.b3log.org">宋诗献</a></li>
                         <li><a target="_blank" href="http://www.mynah.org">Lamb</a></li>
                         <li><a target="_blank" href="https://github.com/xiaomogui">大姨夫</a></li>
+                        <li><a target="_blank" href="http://zephyr.b3log.org">O型血橙</a></li>
                     </ul>
                 </div>
             </div>

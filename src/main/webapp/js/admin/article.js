@@ -442,39 +442,120 @@ admin.article = {
         var qiniu = window.qiniu;
 
         var filename = "";
-        $('#articleUpload').fileupload({
+        //使用七牛上传文件
+        // $('#articleUpload').fileupload({
+        //     multipart: true,
+        //     url: "https://up.qbox.me",
+        //     add: function (e, data) {
+        //         filename = data.files[0].name;
+        //         data.submit();
+        //
+        //         $('#articleUpload span').text('uploading...');
+        //     },
+        //     formData: function (form) {
+        //         var data = form.serializeArray();
+        //         var ext = filename.substring(filename.lastIndexOf(".") + 1);
+        //
+        //         data.push({name: 'key', value: getUUID() + "." + ext});
+        //         data.push({name: 'token', value: qiniu.qiniuUploadToken});
+        //
+        //         return data;
+        //     },
+        //     done: function (e, data) {
+        //         $('#articleUpload span').text('');
+        //         var qiniuKey = data.result.key;
+        //         if (!qiniuKey) {
+        //             alert("Upload error, please check Qiniu configurations");
+        //
+        //             return;
+        //         }
+        //
+        //         $('#articleUpload').after('<div>![' + data.files[0].name + '](http://'
+        //                 + qiniu.qiniuDomain + qiniuKey + ')</div>');
+        //     },
+        //     fail: function (e, data) {
+        //         $('#articleUpload span').text("Upload error, please check Qiniu configurations [" + data.errorThrown + "]");
+        //     }
+        // }).on('fileuploadprocessalways', function (e, data) {
+        //     var currentFile = data.files[data.index];
+        //     if (data.files.error && currentFile.error) {
+        //         alert(currentFile.error);
+        //     }
+        // });
+        var obj = $("#articleUpload");
+        $('#' + obj.id).fileupload({
             multipart: true,
-            url: "https://up.qbox.me",
+            url: latkeConfig.servePath + "/upload",
             add: function (e, data) {
-                filename = data.files[0].name;
+                if (window.File && window.FileReader && window.FileList && window.Blob) {
+                    var reader = new FileReader();
+                    reader.readAsArrayBuffer(data.files[0]);
+                    reader.onload = function (evt) {
+                        var fileBuf = new Uint8Array(evt.target.result.slice(0, 11));
+                        isImg = isImage(fileBuf);
 
-                data.submit();
+                        if (isImg && evt.target.result.byteLength > obj.imgMaxSize) {
+                            alert("This image is too large (max " + obj.imgMaxSize / 1024 / 1024 + "M)");
 
-                $('#articleUpload span').text('uploading...');
+                            return;
+                        }
+
+                        if (!isImg && evt.target.result.byteLength > obj.fileMaxSize) {
+                            alert("This file is too large (max " + obj.fileMaxSize / 1024 / 1024 + "M)");
+
+                            return;
+                        }
+
+                        data.submit();
+                    };
+                } else {
+                    data.submit();
+                }
             },
             formData: function (form) {
                 var data = form.serializeArray();
-                var ext = filename.substring(filename.lastIndexOf(".") + 1);
-
-                data.push({name: 'key', value: getUUID() + "." + ext});
-                data.push({name: 'token', value: qiniu.qiniuUploadToken});
-
                 return data;
             },
+            submit: function (e, data) {
+                if (obj.editor.replaceRange) {
+                    var cursor = obj.editor.getCursor();
+                    obj.editor.replaceRange(obj.uploadingLabel, cursor, cursor);
+                } else {
+                    $('#' + obj.id + ' input').prop('disabled', true);
+                }
+            },
             done: function (e, data) {
-                $('#articleUpload span').text('');
-                var qiniuKey = data.result.key;
-                if (!qiniuKey) {
-                    alert("Upload error, please check Qiniu configurations");
+                var filePath = data.result.key;
+                if (!filePath) {
+                    alert("Upload error");
 
                     return;
                 }
 
-                $('#articleUpload').after('<div>![' + data.files[0].name + '](http://'
-                        + qiniu.qiniuDomain + qiniuKey + ')</div>');
+                if (obj.editor.replaceRange) {
+                    var cursor = obj.editor.getCursor();
+                    filename = data.result.name;
+                    if (isImg) {
+                        obj.editor.replaceRange('![' + filename + '](' + filePath + ') \n\n',
+                            CodeMirror.Pos(cursor.line, cursor.ch - obj.uploadingLabel.length), cursor);
+                    } else {
+                        obj.editor.replaceRange('[' + filename + '](' + filePath + ') \n\n',
+                            CodeMirror.Pos(cursor.line, cursor.ch - obj.uploadingLabel.length), cursor);
+                    }
+                } else {
+                    obj.editor.$it.val(obj.editor.$it.val() + '![' + filename + '](' + filePath + ') \n\n');
+                    $('#' + obj.id + ' input').prop('disabled', false);
+                }
             },
             fail: function (e, data) {
-                $('#articleUpload span').text("Upload error, please check Qiniu configurations [" + data.errorThrown + "]");
+                alert("Upload error: " + data.errorThrown);
+                if (obj.editor.replaceRange) {
+                    var cursor = obj.editor.getCursor();
+                    obj.editor.replaceRange('',
+                        CodeMirror.Pos(cursor.line, cursor.ch - obj.uploadingLabel.length), cursor);
+                } else {
+                    $('#' + obj.id + ' input').prop('disabled', false);
+                }
             }
         }).on('fileuploadprocessalways', function (e, data) {
             var currentFile = data.files[data.index];
